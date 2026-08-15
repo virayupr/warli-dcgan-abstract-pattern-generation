@@ -1,167 +1,333 @@
-Learning Structured Visual Patterns under Data Scarcity
-A DCGAN-based Study on Warli Motif Generation
-This repository contains the official implementation for:
-Learning Structured Visual Patterns from Limited Data: A Case Study on Warli Art Motif Generation
+# Structure-Aware Generative Modeling of Warli Art Motifs from Limited Data Using DCGAN and WGAN-GP
 
-Overview
-This project investigates structured visual pattern learning under data scarcity using DCGAN-based generative modeling on Warli "man" motifs.
+This repository contains the implementation and experimental pipeline for:
+
+**Structure-Aware Generative Modeling of Warli Art Motifs from Limited Data Using DCGAN and WGAN-GP**
+
+## Overview
+
+This study investigates generative learning of structured Warli human motifs under limited-data conditions.
+
+A controlled comparison is performed between:
+
+- Deep Convolutional Generative Adversarial Network (DCGAN)
+- Wasserstein GAN with Gradient Penalty (WGAN-GP)
+
+Both architectures are trained using the same Warli "Man" motif dataset, image representation, latent dimensionality, output resolution, training duration, and multi-seed evaluation protocol.
+
 The study focuses on:
-Structural coherence under limited data (~450–800 samples)
-Symmetry-aware evaluation
-Best-of-K SSIM protocol
-Diversity in feature space
-Controlled architecture benchmarking
 
-Repository Structure
-.
-├── data/
-│   └── warli_dataset/
-│       └── man/                # Real motif images
-│
-├── models/
-│   └── dcgan.py                # Generator & Discriminator
-│
-├── training/
-│   └── train_dcgan.py          # Training script
-│
-├── evaluation/
-│   ├── ssim_protocol.py
-│   ├── symmetry_score.py
-│   ├── diversity_score.py
-│   └── fid_evaluation.py
-│
-├── notebooks/
-│   └── pattern.ipynb           # Reproducible notebook
-│
-├── results/
-│   └── (generated outputs)
-│
-└── README.md
+- Limited-data generative image modeling
+- Distributional alignment
+- Structural similarity
+- Foreground-aware axial symmetry
+- Perceptual diversity
+- Training-set proximity
+- Multi-seed reproducibility
 
-Dataset
+## Dataset
 
-Source:
-Warli Art Object Image Dataset (Mendeley Data, 2023)
+The experiments use the Warli "Man" motif category.
 
-This study uses only the “man” motif subset.
-data/warli_dataset/man/*.png
+**Dataset size:** 998 images  
+**Image representation:** Single-channel grayscale  
+**Image resolution:** 64 × 64 pixels
 
-Images are:
-Grayscale
-Centered
-Resized to 128×128
+Images are resized to 64 × 64 pixels, converted to grayscale, transformed to tensors, and normalized approximately to the range [-1, 1].
 
-Installation
-git clone https://github.com/YOUR_USERNAME/warli-dcgan.git
-cd warli-dcgan
+No offline augmentation, random rotation, affine transformation, or horizontal flipping is used in the final experiments.
 
-pip install -r requirements.txt
+The complete 998-image collection is used for training. No separate held-out test set is used.
 
-Recommended Python: 3.9–3.11
-Tested with PyTorch ≥ 2.0
+### Dataset Source
 
-Training
-Train DCGAN
-python training/train_dcgan.py \
-  --data_root data/warli_dataset \
-  --image_size 128 \
-  --batch_size 64 \
-  --epochs 400 \
-  --seed 42
+Warli Art Object Image Dataset  
+Mendeley Data, 2023.
 
-  python training/train_dcgan.py \
-  --data_root data/warli_dataset \
-  --image_size 128 \
-  --batch_size 64 \
-  --epochs 400 \
-Checkpoints and samples are saved to:
-results/<run_name>/
+Only the **"Man"** category is used in the present study.
 
-Model Architecture
-Generator
+Please cite the original dataset/publication when using the data.
 
-Transposed convolution stack
+## Experimental Design
 
-BatchNorm + ReLU
+Both DCGAN and WGAN-GP are independently trained using three random seeds:
 
-Final Tanh
+- 42
+- 123
+- 2024
 
-Latent dimension: 100
+This results in six independent training runs:
 
-Discriminator
+- 3 DCGAN runs
+- 3 WGAN-GP runs
 
-Convolutional downsampling
+The primary architecture comparison is performed at the common, pre-specified **epoch-100 checkpoint**.
 
-BatchNorm + LeakyReLU
+Intermediate checkpoints are retained at:
 
-Output: Logits (no sigmoid)
+- Epoch 25
+- Epoch 50
+- Epoch 75
+- Epoch 100
 
-Loss:
-BCEWithLogitsLoss (recommended configuration)
+These checkpoints are used to study training progression.
 
-If sigmoid=False in Discriminator → use BCEWithLogitsLoss
-If sigmoid=True → use BCELoss
-Input tensor shape must be (B,1,H,W)
-If you see:
-expected input to have 1 channels, but got 64
-you likely permuted tensor incorrectly.
+## Common Configuration
 
-Evaluation Protocol
-We implement structured evaluation tailored to geometric motifs:
-Best-of-K SSIM Protocol
+| Parameter | Value |
+|---|---|
+| Training images | 998 |
+| Image resolution | 64 × 64 |
+| Image channels | 1 |
+| Latent dimension | 100 |
+| Batch size | 64 |
+| Training duration | 100 epochs |
+| Seeds | 42, 123, 2024 |
+| Primary comparison checkpoint | Epoch 100 |
 
-For each generated image:
-Sample K=5 real images
-Compute SSIM
-Retain maximum
-Report mean ± std across 100 generated samples
-Run:
-python evaluation/ssim_protocol.py \
-  --real_dir data/warli_dataset/man \
-  --gen_dir results/final_1000 \
-  --n_gen 100 \
-  --k_real 5 \
-  --best_of 20
+## DCGAN
 
-  Symmetry Score
-Axial symmetry measured via horizontal flip consistency.
-python evaluation/symmetry_score.py \
-  --img_dir results/final_1000
+### Generator
 
-  Diversity Score
+The generator uses a transposed-convolution architecture with feature-map progression:
 
-Feature-space diversity using MobileNetV2 embeddings:
-Mean pairwise cosine distance
-Entropy-normalized diversity score
-python evaluation/diversity_score.py \
-  --img_dir results/final_1000
+100 → 512 → 256 → 128 → 64 → 1
 
-  FID
-  python evaluation/fid_evaluation.py \
-  --real_dir data/warli_dataset/man \
-  --gen_dir results/final_1000
+Intermediate layers use:
 
-  Reproducibility
+- Batch normalization
+- ReLU activation
 
-All experiments use:
-Fixed random seed (42)
-Deterministic CuDNN
-Logged hyperparameters in checkpoint metadata
-Saved training curves
+The output layer uses:
 
-Figures
+- Tanh activation
 
-The repository supports automatic generation of:
-Real vs Generated panel
-Best-of-25 SSIM panel
-Training dynamics curves
-SSIM distribution plots
-Symmetry distribution plots
+### Discriminator
 
-Hardware
+The discriminator uses convolutional downsampling with channel progression:
 
-Experiments conducted on:
-NVIDIA Tesla T4 GPU
-CUDA 12.x
-PyTorch 2.x
-CPU mode also supported (slower training).
+1 → 64 → 128 → 256 → 512 → 1
+
+Intermediate layers use:
+
+- Batch normalization
+- LeakyReLU activation
+
+The final layer produces raw logits.
+
+### Optimization
+
+- Loss: BCEWithLogitsLoss
+- Generator learning rate: 2 × 10⁻⁴
+- Discriminator learning rate: 1 × 10⁻⁴
+- Adam β₁ = 0.5
+- Adam β₂ = 0.999
+- Real-label target = 0.9
+- One discriminator update per generator update
+
+## WGAN-GP
+
+The WGAN-GP generator uses the same architecture as the DCGAN generator to support a controlled comparison.
+
+### Critic
+
+The critic follows the channel progression:
+
+1 → 64 → 128 → 256 → 512 → 1
+
+The critic uses:
+
+- LeakyReLU activation
+- Instance normalization with learnable affine parameters
+- No Sigmoid activation
+
+### Optimization
+
+- Wasserstein adversarial objective
+- Gradient penalty coefficient λ = 5.0
+- Generator learning rate: 2 × 10⁻⁴
+- Critic learning rate: 1 × 10⁻⁴
+- Adam β₁ = 0
+- Adam β₂ = 0.9
+- Three critic updates per generator update
+
+## Evaluation Protocol
+
+The primary quantitative comparison is performed at epoch 100 for all three seeds.
+
+The following complementary evaluation measures are used.
+
+### 1. Fréchet Inception Distance (FID)
+
+FID evaluates distributional alignment between the real and generated image distributions.
+
+Lower FID indicates closer alignment in Inception feature space.
+
+Because the original images are grayscale, they are replicated across three channels before Inception feature extraction.
+
+### 2. Random-Reference SSIM
+
+For each evaluated generated image:
+
+1. Five real reference images are randomly selected.
+2. SSIM is computed between the generated image and each reference.
+3. The five SSIM values are averaged.
+4. The procedure is repeated across 100 generated images.
+
+The resulting score provides an image-level structural correspondence measure under a fixed random-reference protocol.
+
+It is not interpreted as reconstruction accuracy.
+
+### 3. Foreground-Aware Axial Symmetry
+
+Axial symmetry is used as a domain-specific structural descriptor for Warli human motifs.
+
+A foreground threshold of:
+
+τ = 0.55
+
+is used.
+
+The metric evaluates left-right foreground correspondence about the vertical image axis.
+
+Higher scores indicate stronger bilateral organization.
+
+This metric is treated as a task-specific descriptor rather than a universal image-quality measure.
+
+### 4. LPIPS-Based Perceptual Diversity
+
+Perceptual diversity is evaluated using LPIPS with a pretrained AlexNet backbone.
+
+For each independently trained epoch-100 model:
+
+- 500 distinct generated-image pairs are sampled.
+- LPIPS distance is computed for each pair.
+- Mean LPIPS distance is used as the run-level diversity score.
+
+Higher values indicate greater perceptual variability among generated samples.
+
+### 5. SSIM-Based Nearest-Neighbour Analysis
+
+Nearest-neighbour analysis is used as a training-set proximity diagnostic.
+
+For each evaluated generated image, SSIM is calculated against **all 998 training images**.
+
+The training image producing the maximum SSIM is retained as the nearest neighbour.
+
+For each model run, the analysis reports:
+
+- Mean nearest-neighbour SSIM
+- Standard deviation
+- Minimum
+- Maximum
+- Corresponding training-image indices
+
+Higher nearest-neighbour SSIM indicates greater proximity to an individual training image.
+
+It should **not** be interpreted by itself as evidence of memorization or superior generative quality.
+
+## Multi-Seed Reporting
+
+Architecture-level results are reported as:
+
+**mean ± sample standard deviation**
+
+across the three independent seeds:
+
+42, 123, and 2024.
+
+Thus, the reported uncertainty in the primary comparison represents **between-seed training variability**.
+
+## Main Results at Epoch 100
+
+Across the three independent seeds:
+
+| Metric | DCGAN | WGAN-GP |
+|---|---:|---:|
+| FID ↓ | 387.05 ± 14.94 | 375.56 ± 13.29 |
+| SSIM ↑ | 0.2796 ± 0.0187 | 0.3173 ± 0.0152 |
+| Axial symmetry ↑ | 0.8313 ± 0.0144 | 0.8652 ± 0.0116 |
+| LPIPS diversity ↑ | 0.2728 ± 0.0121 | 0.2757 ± 0.0047 |
+| Mean NN-SSIM | 0.4871 ± 0.0213 | 0.5705 ± 0.0160 |
+
+WGAN-GP therefore achieves stronger distributional alignment and structural correspondence in the present experimental setting while maintaining comparable perceptual diversity.
+
+The higher nearest-neighbour SSIM of WGAN-GP is interpreted as greater training-set proximity and not necessarily as better generative quality.
+
+## Reproducibility
+
+Random seeds are explicitly applied to:
+
+- Python
+- NumPy
+- PyTorch
+- CUDA
+
+CuDNN deterministic mode is enabled and benchmarking is disabled.
+
+The pipeline stores:
+
+- Model checkpoints
+- Training histories
+- Per-seed checkpoint metrics
+- Generated sample grids
+- Symmetry-mask diagnostics
+- Nearest-neighbour matches
+- Architecture-level summaries
+- Exploratory paired statistical comparisons
+
+## Outputs
+
+The pipeline generates:
+
+- Epoch-level training histories
+- Generated samples at epochs 25, 50, 75, and 100
+- DCGAN training-dynamics plots
+- WGAN-GP training-dynamics plots
+- Foreground symmetry-mask diagnostics
+- SSIM nearest-neighbour comparison figures
+- Per-seed metric CSV files
+- Multi-seed summary tables
+- Exploratory paired comparisons
+
+## Software Requirements
+
+The implementation uses:
+
+- Python
+- PyTorch
+- torchvision
+- NumPy
+- pandas
+- SciPy
+- scikit-image
+- torchmetrics
+- torch-fidelity
+- LPIPS
+- Matplotlib
+
+Install the principal dependencies using:
+
+pip install torchmetrics torch-fidelity lpips scikit-image
+
+## Hardware
+
+The experiments are designed for CUDA-enabled GPU execution.
+
+CPU execution is possible but substantially slower.
+
+## Important Interpretation Note
+
+This study is a controlled case study involving one Warli motif category and a limited dataset.
+
+The reported results should therefore not be interpreted as establishing universal superiority of WGAN-GP over DCGAN.
+
+The evaluation measures capture complementary properties:
+
+- FID: distributional alignment
+- SSIM: structural correspondence
+- Axial symmetry: task-specific bilateral organization
+- LPIPS: perceptual diversity
+- NN-SSIM: training-set proximity
+
+No single metric is treated as a complete measure of generative quality.
