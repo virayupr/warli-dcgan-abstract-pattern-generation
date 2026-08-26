@@ -257,11 +257,13 @@ as reconstruction accuracy or direct symbolic-validity assessment.
 Foreground-aware axial symmetry is used as a task-specific descriptor of
 bilateral organization in the selected Warli human-motif category.
 
-A fixed foreground threshold of:
+A prespecified primary foreground threshold of:
 
 `τ = 0.55`
 
-is used to separate predominantly dark motif regions from the background.
+is used with the bright-foreground rule `I(x,y) >= τ`, consistently with
+the final training and enhancement pipelines. The supplied mask-diagnostic
+figures should always be inspected before interpreting structural results.
 
 The metric evaluates left-right foreground correspondence about the
 vertical image axis.
@@ -291,10 +293,10 @@ Images are represented in grayscale over the range [0,1].
 
 A pixel is classified as foreground when:
 
-`I(x,y) < 0.55`
+`I(x,y) >= τ`
 
-because the Warli motif strokes predominantly correspond to darker image
-regions.
+with `τ = 0.55` for the primary analysis. This convention matches the
+normalization and foreground orientation used by the final Colab pipeline.
 
 Connected foreground regions are identified using **8-neighbour
 connectivity**.
@@ -373,7 +375,54 @@ or superior generative quality.
 
 ---
 
-## 7. Qualitative Structural Inspection
+## 7. Learned-Feature Nearest-Neighbour Analysis
+
+The SSIM diagnostic is supplemented using two learned representations:
+
+- AlexNet-based LPIPS nearest-neighbour distance
+- Inception-v3 feature cosine nearest-neighbour distance
+
+For each architecture and seed, 100 generated images are retrieved against
+all 998 training images. Lower distance indicates greater training-set
+proximity in the selected representation. Architecture-level values are
+reported as mean ± sample standard deviation across the three seeds.
+
+| Architecture | LPIPS NN distance ↓ | Inception cosine NN distance ↓ |
+|---|---:|---:|
+| DCGAN | 0.2179 ± 0.0162 | 0.3526 ± 0.0133 |
+| WGAN-GP | 0.1972 ± 0.0068 | 0.3238 ± 0.0129 |
+
+Both learned-feature diagnostics agree with NN-SSIM that WGAN-GP outputs
+are relatively closer to the training collection. This agreement does not
+prove exact replication, memorization, or novelty.
+
+---
+
+## 8. Foreground-Threshold Sensitivity
+
+The structural analysis is repeated at:
+
+`τ = 0.45, 0.50, 0.55, 0.60, 0.65`
+
+using 500 generated images for every architecture and seed and all 998
+real images. WGAN-GP retains higher mean axial symmetry at every threshold:
+
+| τ | DCGAN | WGAN-GP |
+|---:|---:|---:|
+| 0.45 | 0.8289 ± 0.0145 | 0.8622 ± 0.0121 |
+| 0.50 | 0.8298 ± 0.0144 | 0.8632 ± 0.0118 |
+| 0.55 | 0.8313 ± 0.0144 | 0.8652 ± 0.0116 |
+| 0.60 | 0.8338 ± 0.0144 | 0.8686 ± 0.0116 |
+| 0.65 | 0.8376 ± 0.0146 | 0.8740 ± 0.0117 |
+
+The symmetry ranking is stable, whereas the architecture closer to the
+real connected-component references varies for some descriptors and
+thresholds. Topology results should therefore be interpreted together
+with the full sensitivity tables.
+
+---
+
+## 9. Qualitative Structural Inspection
 
 Quantitative evaluation is complemented by qualitative inspection of
 representative generated motifs.
@@ -434,6 +483,10 @@ architectures.
 WGAN-GP also exhibits higher nearest-neighbour SSIM, indicating greater
 training-set proximity under the adopted similarity measure rather than
 necessarily superior generative quality.
+
+LPIPS and Inception-feature nearest-neighbour retrieval produce the same
+relative proximity direction. WGAN-GP's axial-symmetry advantage also
+remains stable over the complete tested threshold range from 0.45 to 0.65.
 
 ---
 
@@ -514,6 +567,10 @@ The final experimental pipeline stores run-specific:
 
 Six independent training runs are performed in total.
 
+The `notebooks` directory contains the Colab-ready multi-seed training
+pipeline and the no-retraining connected-component analysis. Paper-ready
+CSV summaries and figures are stored under `results/paper_ready`.
+
 ---
 
 # Repository Outputs
@@ -555,3 +612,19 @@ Install the principal evaluation dependencies using:
 
 ```bash
 pip install torchmetrics torch-fidelity lpips scikit-image
+```
+
+---
+
+# Important Interpretation Notes
+
+- The work presents a **multi-perspective evaluation protocol**, not a
+  universally validated metric framework.
+- The complete 998-image collection is used for training and as the real
+  reference; no genuinely held-out test set is claimed.
+- Nearest-neighbour results diagnose training-set proximity and cannot by
+  themselves establish memorization or novelty.
+- Axial symmetry is relevant to the selected human-motif category but is
+  not a universal measure of cultural or symbolic validity.
+- Connected-component statistics measure foreground topology and do not
+  verify head–torso–limb semantics.
