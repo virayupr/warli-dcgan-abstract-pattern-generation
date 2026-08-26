@@ -6,3 +6,7 @@ pillow
 matplotlib
 tqdm
 scipy
+pandas
+torchmetrics
+torch-fidelity
+lpips
