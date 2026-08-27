@@ -8,16 +8,16 @@
 #
 # Inputs:
 #   --img_dir  : folder with images
-#   --size     : resize size (default 128)
-#   --threshold: foreground threshold (default 0.5)
+#   --size     : resize size (default 64)
+#   --threshold: foreground threshold (default 0.55)
 #   --top_k    : optional, export top-k most symmetric images
 #   --out_csv  : optional CSV summary
 #
 # Usage (example):
 #   python evaluation/symmetry_score.py \
 #     --img_dir results/final_1000 \
-#     --size 128 \
-#     --threshold 0.5 \
+#     --size 64 \
+#     --threshold 0.55 \
 #     --top_k 25 \
 #     --out_csv results/symmetry_summary.csv
 # ============================================================
@@ -42,7 +42,7 @@ def list_images(folder):
     return sorted(files)
 
 
-def load_gray01(path, size=128):
+def load_gray01(path, size=64):
     """
     Load image -> grayscale -> resize -> float32 [0,1]
     """
@@ -53,7 +53,7 @@ def load_gray01(path, size=128):
     return arr
 
 
-def compute_symmetry_score(I, threshold=0.5):
+def compute_symmetry_score(I, threshold=0.55):
     """
     Foreground-aware axial symmetry score.
 
@@ -66,7 +66,7 @@ def compute_symmetry_score(I, threshold=0.5):
     """
 
     # Binary foreground mask
-    M = (I > threshold).astype(np.float32)
+    M = (I >= threshold).astype(np.float32)
 
     # Horizontal mirror
     I_m = np.fliplr(I)
@@ -93,9 +93,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--img_dir", type=str, required=True,
                         help="Folder with images")
-    parser.add_argument("--size", type=int, default=128,
+    parser.add_argument("--size", type=int, default=64,
                         help="Resize images to size×size")
-    parser.add_argument("--threshold", type=float, default=0.5,
+    parser.add_argument("--threshold", type=float, default=0.55,
                         help="Foreground threshold (0–1)")
     parser.add_argument("--top_k", type=int, default=0,
                         help="Export top-k most symmetric images")
