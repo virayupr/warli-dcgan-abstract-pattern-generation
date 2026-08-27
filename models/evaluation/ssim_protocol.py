@@ -3,7 +3,8 @@
 # SSIM Protocol (paper-ready)
 # - Computes SSIM between generated images and real images
 # - Default protocol: 100 generated × 5 random real matches
-# - Reports mean ± std over all pairs
+# - Averages the five pair scores for each generated image
+# - Reports mean ± sample std over the 100 per-image averages
 # - Optionally: "best-of-k" SSIM (for each generated image, take best SSIM
 #   among k random real candidates) -> matches your earlier "Best-of-20" idea
 #
@@ -11,11 +12,11 @@
 #   python evaluation/ssim_protocol.py \
 #     --real_dir data/warli_dataset/man \
 #     --gen_dir  results/final_1000 \
-#     --n_gen 100 --k_real 5 --best_of 0
+#     --n_gen 100 --k_real 5 --size 64 --best_of 0
 #
 # Notes:
 # - This expects grayscale or RGB images; it converts to grayscale internally.
-# - Images are resized to a common size (default 128).
+# - Images are resized to the paper's common size (default 64).
 # ============================================================
 
 from __future__ import annotations
@@ -41,7 +42,7 @@ def list_images(folder: str) -> List[str]:
     return sorted(files)
 
 
-def load_gray01(path: str, size: int = 128) -> np.ndarray:
+def load_gray01(path: str, size: int = 64) -> np.ndarray:
     """
     Load image -> grayscale -> resize -> float32 in [0,1].
     """
@@ -70,30 +71,40 @@ def protocol_random_pairs(
     gen_paths: List[str],
     n_gen: int = 100,
     k_real: int = 5,
-    size: int = 128,
+    size: int = 64,
 ) -> Dict[str, float]:
     """
-    Protocol A: 100 generated images × 5 random real pairings (total 500 SSIM values).
+    Protocol A: 100 generated images x 5 random real pairings.
+
+    The five pair scores are averaged for each generated image before the
+    overall mean and sample standard deviation are computed. This matches
+    the protocol reported in the manuscript.
     """
     assert len(real_paths) > 0 and len(gen_paths) > 0, "Empty real/gen folder"
 
     n_gen = min(n_gen, len(gen_paths))
     chosen_gen = random.sample(gen_paths, n_gen)
 
-    vals = []
+    per_image_means = []
+    pair_values = []
     for gp in chosen_gen:
         g = load_gray01(gp, size=size)
         chosen_real = random.sample(real_paths, min(k_real, len(real_paths)))
+        current = []
         for rp in chosen_real:
             r = load_gray01(rp, size=size)
-            vals.append(compute_ssim(g, r))
+            current.append(compute_ssim(g, r))
+        pair_values.extend(current)
+        per_image_means.append(float(np.mean(current)))
 
-    vals = np.array(vals, dtype=np.float32)
+    vals = np.asarray(per_image_means, dtype=np.float32)
+    pairs = np.asarray(pair_values, dtype=np.float32)
     return {
         "protocol": "random_pairs",
         "n_gen": int(n_gen),
         "k_real": int(k_real),
-        "n_pairs": int(vals.size),
+        "n_pairs": int(pairs.size),
+        "n_per_image_scores": int(vals.size),
         "mean": float(vals.mean()),
         "std": float(vals.std(ddof=1)) if vals.size > 1 else 0.0,
         "min": float(vals.min()),
@@ -106,7 +117,7 @@ def protocol_best_of_k(
     gen_paths: List[str],
     n_gen: int = 100,
     best_of: int = 20,
-    size: int = 128,
+    size: int = 64,
 ) -> Dict[str, float]:
     """
     Protocol B: For each generated image, compare with 'best_of' random real images
@@ -149,7 +160,7 @@ def main():
     ap.add_argument("--n_gen", type=int, default=100, help="Number of generated images to sample")
     ap.add_argument("--k_real", type=int, default=5, help="Number of random real pairings per generated image")
     ap.add_argument("--best_of", type=int, default=0, help="If >0, run best-of-k protocol (k=best_of)")
-    ap.add_argument("--size", type=int, default=128, help="Resize all images to size×size before SSIM")
+    ap.add_argument("--size", type=int, default=64, help="Resize all images to size x size before SSIM")
     ap.add_argument("--seed", type=int, default=42, help="Random seed")
     ap.add_argument("--out_csv", type=str, default="", help="Optional: write summary metrics to a CSV file")
     args = ap.parse_args()
@@ -174,7 +185,9 @@ def main():
     )
     print("\nProtocol A — Random pairs")
     print(f"SSIM: {summary['mean']:.3f} ± {summary['std']:.3f}  "
-          f"(n_pairs={summary['n_pairs']}, min={summary['min']:.3f}, max={summary['max']:.3f})")
+          f"(n_generated={summary['n_per_image_scores']}, "
+          f"n_pairs={summary['n_pairs']}, min={summary['min']:.3f}, "
+          f"max={summary['max']:.3f})")
 
     best_summary = None
     if args.best_of and args.best_of > 0:

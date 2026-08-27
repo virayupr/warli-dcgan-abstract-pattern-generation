@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use this software or its results, please cite the associated study."
+title: "Structure-Aware Generative Modeling of Warli Art Motifs from Limited Data Using DCGAN and WGAN-GP"
+type: software
+authors:
+  - family-names: "Kannan"
+    given-names: "Rajeswari"
+repository-code: "https://github.com/virayupr/warli-dcgan-abstract-pattern-generation"
+license: MIT
+date-released: 2026-08-26
+keywords:
+  - generative adversarial networks
+  - DCGAN
+  - WGAN-GP
+  - Warli art
+  - low-data image generation
+  - structure-aware evaluation
+abstract: >-
+  Reproducibility resources for a three-seed comparison of DCGAN and WGAN-GP
+  on 998 grayscale Warli human motifs, including multi-perspective evaluation
+  using FID, SSIM, axial symmetry, LPIPS, connected-component descriptors,
+  and nearest-neighbour analyses.

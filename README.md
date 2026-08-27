@@ -64,8 +64,9 @@ is applied in the final training pipeline.
 
 ### Dataset Source
 
-**Warli Art Object Image Dataset**  
-Mendeley Data, 2023.
+**[Warli Art Object Image Dataset](https://doi.org/10.17632/vv6dbrwwnn.1)**
+
+Mendeley Data, Version 1, 2023. The dataset is distributed under CC BY 4.0.
 
 Only the **"Man"** category is used in the present study.
 
@@ -571,6 +572,18 @@ The `notebooks` directory contains the Colab-ready multi-seed training
 pipeline and the no-retraining connected-component analysis. Paper-ready
 CSV summaries and figures are stored under `results/paper_ready`.
 
+## Repository map
+
+| Path | Purpose |
+|---|---|
+| `notebooks/warli_multi_seed_pipeline_FINAL_COLAB.ipynb` | Canonical six-run training and primary evaluation pipeline |
+| `notebooks/Warli_Connected_Component_Analysis_NO_RETRAIN.ipynb` | Post-training topology analysis without retraining |
+| `analysis/enhancement_analysis.py` | Threshold sensitivity and learned-feature nearest-neighbour analysis |
+| `models/` | Reusable DCGAN and evaluation modules aligned with the 64 x 64 study |
+| `results/paper_ready/` | Submission-facing figures and compact CSV summaries |
+| `results/legacy_single_model_450_images/` | Clearly separated provenance material from the earlier 450-image experiment |
+| `legacy/` | Superseded code and notebook material retained only for provenance |
+
 ---
 
 # Repository Outputs
@@ -608,11 +621,14 @@ The implementation uses:
 - LPIPS
 - Matplotlib
 
-Install the principal evaluation dependencies using:
+Install the declared dependencies using:
 
 ```bash
-pip install torchmetrics torch-fidelity lpips scikit-image
+pip install -r requirements.txt
 ```
+
+The notebooks are designed for a CUDA-enabled Google Colab runtime. CPU
+execution is possible but substantially slower.
 
 ---
 
@@ -628,3 +644,11 @@ pip install torchmetrics torch-fidelity lpips scikit-image
   not a universal measure of cultural or symbolic validity.
 - Connected-component statistics measure foreground topology and do not
   verify head–torso–limb semantics.
+
+---
+
+# Citation and license
+
+Citation metadata are provided in `CITATION.cff`. The source code is
+released under the MIT License. The external Warli dataset is not included
+in this repository and remains subject to its original CC BY 4.0 licence.

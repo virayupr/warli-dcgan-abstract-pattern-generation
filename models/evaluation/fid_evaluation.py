@@ -9,7 +9,7 @@
 #     --real_dir data/warli_dataset/man \
 #     --gen_dir results/final_1000 \
 #     --batch_size 32 \
-#     --size 128 \
+#     --size 64 \
 #     --out_csv results/fid_summary.csv
 # ============================================================
 
@@ -44,7 +44,7 @@ def list_images(folder: str) -> List[str]:
 
 
 class ImageFolderDataset(Dataset):
-    def __init__(self, image_paths, size=128):
+    def __init__(self, image_paths, size=64):
         self.paths = image_paths
         self.transform = transforms.Compose([
             transforms.Resize((size, size)),
@@ -72,7 +72,7 @@ def main():
     parser.add_argument("--gen_dir", type=str, required=True,
                         help="Directory containing generated images")
     parser.add_argument("--batch_size", type=int, default=32)
-    parser.add_argument("--size", type=int, default=128)
+    parser.add_argument("--size", type=int, default=64)
     parser.add_argument("--out_csv", type=str, default="")
     args = parser.parse_args()
 
@@ -97,7 +97,7 @@ def main():
     gen_loader = DataLoader(gen_dataset, batch_size=args.batch_size, shuffle=False)
 
     # Torchmetrics FID
-    fid = FrechetInceptionDistance(feature=2048).to(device)
+    fid = FrechetInceptionDistance(feature=2048, normalize=True).to(device)
 
     # Update with real images
     for batch in real_loader:
